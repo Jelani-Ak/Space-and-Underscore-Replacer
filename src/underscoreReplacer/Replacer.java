@@ -25,18 +25,18 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-class Replacer extends JFrame implements ActionListener, FocusListener {
+class Replacer extends JFrame implements ActionListener {
 
   private JLabel labelCopyStateRemove;
   private JTextField textfieldUserInputRemove;
   private JTextField textfieldOutputTextRemove;
-  
-  private boolean textfieldPlaceholderActiveRemove = false;
-  private boolean textfieldPlaceholderActiveAdd = false;
 
   private JLabel labelCopyStateAdd;
   private JTextField textfieldUserInputAdd;
   private JTextField textfieldOutputTextAdd;
+
+  private boolean textfieldPlaceholderInactiveRemove;
+  private boolean textfieldPlaceholderInactiveAdd;
 
   private final String placeholderText = "Enter Text";
 
@@ -47,15 +47,15 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
   }
 
   public Replacer() {
-    GUI();
+    UserInterface();
   }
 
-//<editor-fold defaultstate="collapsed" desc="Action Events">
+  //<editor-fold defaultstate="collapsed" desc="[Section] Action Events">
   @Override
   public void actionPerformed(ActionEvent ae) {
-    //<editor-fold defaultstate="collapsed" desc="Copy to Clipboard state">
+    //<editor-fold defaultstate="collapsed" desc="[Section] Copy to Clipboard state">
     if ("CopyTextRemove".equals(ae.getActionCommand())) {
-      Timer timer = new Timer(2000, event -> {
+      Timer timer = new Timer(3000, event -> {
         labelCopyStateRemove.setText(null);
       });
 
@@ -72,41 +72,30 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
         clipboard.setContents(stringSelection, null);
       }
     }
+
+    if ("CopyTextAdd".equals(ae.getActionCommand())) {
+      Timer timer = new Timer(3000, event -> {
+        labelCopyStateAdd.setText(null);
+      });
+
+      if ((textfieldOutputTextAdd.getText().equals("")) || (textfieldOutputTextAdd.getText() == null)) {
+        labelCopyStateAdd.setText("Nothing copied");
+        timer.start();
+
+      } else if ((!textfieldOutputTextAdd.getText().equals("Enter Text")) && (textfieldOutputTextAdd.getText().length() > 0)) {
+        labelCopyStateAdd.setText("Copied to Clipboard");
+        timer.start();
+
+        StringSelection stringSelection = new StringSelection(textfieldOutputTextAdd.getText());
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(stringSelection, null);
+      }
+    }
     //</editor-fold>
-  }
-
-  @Override
-  public void focusGained(FocusEvent e) {
-    if (textfieldPlaceholderActiveRemove) { //If Placeholder ("Enter Text") showing before focus gained
-      textfieldUserInputRemove.setText(null); //Set text to null
-      textfieldUserInputRemove.setForeground(Color.black); //Set text to black
-      textfieldPlaceholderActiveRemove = false; //Set to inactive while element is focused
-    }
-    
-    if (textfieldPlaceholderActiveAdd) { //If Placeholder ("Enter Text") showing before focus gained
-      textfieldUserInputAdd.setText(null); //Set text to null
-      textfieldUserInputAdd.setForeground(Color.black); //Set text to black
-      textfieldPlaceholderActiveAdd = false; //Set to inactive while element is focused
-    }
-  }
-
-  @Override
-  public void focusLost(FocusEvent e) {
-    if (textfieldUserInputRemove.getText().isEmpty()) { //If enterText textfield empty
-      textfieldUserInputRemove.setText(placeholderText); //Set text to Placeholder ("Enter Text")
-      textfieldUserInputRemove.setForeground(Color.lightGray); //Set text to light gray
-      textfieldPlaceholderActiveRemove = true; //Set to active when element focus is lost
-    }
-    
-    if (textfieldUserInputAdd.getText().isEmpty()) { //If enterText textfield empty
-      textfieldUserInputAdd.setText(placeholderText); //Set text to Placeholder ("Enter Text")
-      textfieldUserInputAdd.setForeground(Color.lightGray); //Set text to light gray
-      textfieldPlaceholderActiveAdd = true; //Set to active when element focus is lost
-    }
   }
   //</editor-fold>
 
-  private void GUI() {
+  private void UserInterface() {
     GridBagConstraints gbc = new GridBagConstraints();
     gbc.fill = GridBagConstraints.BOTH;
 
@@ -117,7 +106,7 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
     panelMain.setLayout(new BoxLayout(panelMain, BoxLayout.Y_AXIS));
     panelMain.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-    //<editor-fold defaultstate="collapsed" desc="Removing Underscores">
+    //<editor-fold defaultstate="collapsed" desc="[Section] Removing Underscores">
     JPanel panelUnderscoreRemove = new JPanel();
     panelUnderscoreRemove.setBorder(BorderFactory.createTitledBorder("Remove Underscores"));
     panelUnderscoreRemove.setLayout(new BoxLayout(panelUnderscoreRemove, BoxLayout.X_AXIS));
@@ -179,7 +168,25 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
     //<editor-fold defaultstate="collapsed" desc="User input Textfield">
     textfieldUserInputRemove = new JTextField();
     textfieldUserInputRemove.setFont(arial);
-    textfieldUserInputRemove.addFocusListener(this);
+    textfieldUserInputRemove.addFocusListener(new FocusListener() {
+      @Override
+      public void focusGained(FocusEvent e) {
+        if (textfieldPlaceholderInactiveRemove) { //If Placeholder ("Enter Text") showing before focus gained
+          textfieldUserInputRemove.setText(null); //Set text to null
+          textfieldUserInputRemove.setForeground(Color.black); //Set text to black
+          textfieldPlaceholderInactiveRemove = false; //Set to inactive while element is focused
+        }
+      }
+
+      @Override
+      public void focusLost(FocusEvent e) {
+        if (textfieldUserInputRemove.getText().isEmpty()) { //If enterText textfield empty
+          textfieldUserInputRemove.setText(placeholderText); //Set text to Placeholder ("Enter Text")
+          textfieldUserInputRemove.setForeground(Color.lightGray); //Set text to light gray
+          textfieldPlaceholderInactiveRemove = true; //Set to active when element focus is lost
+        }
+      }
+    });
     textfieldUserInputRemove.setBorder(BorderFactory.createCompoundBorder(
             textfieldUserInputRemove.getBorder(),
             BorderFactory.createEmptyBorder(3, 0, 3, 0)));
@@ -206,9 +213,9 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
       //Replace underscores with spaces
       private void update() {
         long underscoreCountRemove = textfieldUserInputRemove.getText().chars().filter(ch -> ch == '_').count(); //Filter underscores
-        labelUnderscoreCountRemove.setText(String.valueOf(underscoreCountRemove)); //Count total underscores
 
         if (!textfieldUserInputRemove.getText().equals("Enter Text")) {
+          labelUnderscoreCountRemove.setText(String.valueOf(underscoreCountRemove)); //Count total underscores
           labelCharacterCountRemove.setText(textfieldUserInputRemove.getText().length() + "");
         }
 
@@ -230,7 +237,7 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
     panelUserOutputRemove.add(copyTextRemove, gbc);
     //</editor-fold>
 
-    //<editor-fold defaultstate="collapsed" desc="Adding Underscores">
+    //<editor-fold defaultstate="collapsed" desc="[Section] Adding Underscores">
     JPanel panelUnderscoreAdd = new JPanel();
     panelUnderscoreAdd.setBorder(BorderFactory.createTitledBorder("Add Underscores"));
     panelUnderscoreAdd.setLayout(new BoxLayout(panelUnderscoreAdd, BoxLayout.X_AXIS));
@@ -264,7 +271,7 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
     JLabel labelUnderscoreCountAdd = new JLabel("0");
     labelUnderscoreCountAdd.setHorizontalAlignment(JLabel.LEFT);
 
-    JLabel labelUnderscoresAdd = new JLabel("Underscores:");
+    JLabel labelUnderscoresAdd = new JLabel("Spaces:");
     labelUnderscoresAdd.setHorizontalAlignment(JLabel.RIGHT);
 
     labelCopyStateAdd = new JLabel();
@@ -292,10 +299,29 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
     //<editor-fold defaultstate="collapsed" desc="User input Textfield">
     textfieldUserInputAdd = new JTextField();
     textfieldUserInputAdd.setFont(arial);
-    textfieldUserInputAdd.addFocusListener(this);
     textfieldUserInputAdd.setBorder(BorderFactory.createCompoundBorder(
             textfieldUserInputAdd.getBorder(),
             BorderFactory.createEmptyBorder(3, 0, 3, 0)));
+    textfieldUserInputAdd.addFocusListener(new FocusListener() {
+      @Override
+      public void focusGained(FocusEvent e) {
+        if (textfieldPlaceholderInactiveAdd) { //If Placeholder ("Enter Text") showing before focus gained
+          textfieldUserInputAdd.setText(null); //Set text to null
+          textfieldUserInputAdd.setForeground(Color.black); //Set text to black
+          textfieldPlaceholderInactiveAdd = false; //Set to inactive while element is focused
+        }
+      }
+
+      @Override
+      public void focusLost(FocusEvent e) {
+        if (textfieldUserInputAdd.getText().isEmpty()) { //If enterText textfield empty
+          textfieldUserInputAdd.setText(placeholderText); //Set text to Placeholder ("Enter Text")
+          textfieldUserInputAdd.setForeground(Color.lightGray); //Set text to light gray
+          textfieldPlaceholderInactiveAdd = true; //Set to active when element focus is lost
+        }
+      }
+    });
+
     gbd.weightx = 1.0;
     gbd.gridx = 0;
     gbd.gridy = 0;
@@ -316,18 +342,17 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
         update(); //Addition
       }
 
-      //Replace underscores with spaces
+      //Replace spaces with underscores
       private void update() {
-        long underscoreCount = textfieldUserInputAdd.getText().chars().filter(ch -> ch == '_').count(); //Filter underscores
-        labelUnderscoreCountRemove.setText(String.valueOf(underscoreCount)); //Count total underscores
-
-        if (!textfieldUserInputAdd.getText().equals("Enter Text")) {
-          labelCharacterCountRemove.setText(textfieldUserInputAdd.getText().length() + "");
+        long underscoreCountAdd = textfieldUserInputAdd.getText().chars().filter(ch -> ch == ' ').count(); //Filter underscores
+        if (!textfieldUserInputAdd.getText().equals(placeholderText)) {
+          labelUnderscoreCountAdd.setText(String.valueOf(underscoreCountAdd)); //Count total underscores
+          labelCharacterCountAdd.setText(textfieldUserInputAdd.getText().length() + "");
         }
 
-        if ((!(textfieldUserInputAdd.getText().equals(placeholderText)) && (textfieldUserInputRemove.getText().length() > 0))) {
-          textfieldOutputTextAdd.setText(textfieldUserInputAdd.getText().replaceAll("_", " "));
-        } else if (((textfieldUserInputAdd.getText().length() < 1))) {
+        if (!(textfieldUserInputAdd.getText().equals(placeholderText)) && (textfieldUserInputAdd.getText().length() > 0)) {
+          textfieldOutputTextAdd.setText(textfieldUserInputAdd.getText().replaceAll(" ", "_"));
+        } else if ((textfieldUserInputAdd.getText().length() < 1)) {
           textfieldOutputTextAdd.setText(null);
         }
       }
@@ -363,8 +388,8 @@ class Replacer extends JFrame implements ActionListener, FocusListener {
     panelUnderscoreAdd_Inner_Inner.add(panelUserInputAdd, BorderLayout.CENTER);
     panelUnderscoreAdd_Inner_Inner.add(panelUserOutputAdd, BorderLayout.SOUTH);
 
-    //<editor-fold defaultstate="collapsed" desc="Default Settings">
-    setTitle("Underscore Replacer");
+    //<editor-fold defaultstate="collapsed" desc="[Section] Default Settings">
+    setTitle("Underscore and Space Replacer");
     setSize(650, 300);
     setResizable(false);
     setLocationRelativeTo(null);
