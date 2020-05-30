@@ -13,8 +13,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -27,14 +25,18 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-class Replacer extends JFrame implements ActionListener, KeyListener, FocusListener {
+class Replacer extends JFrame implements ActionListener, FocusListener {
 
-  private JLabel labelCopyState;
+  private JLabel labelCopyStateRemove;
+  private JTextField textfieldUserInputRemove;
+  private JTextField textfieldOutputTextRemove;
+  
+  private boolean textfieldPlaceholderActiveRemove = false;
+  private boolean textfieldPlaceholderActiveAdd = false;
 
-  private JTextField textfieldUserInput;
-  private JTextField textfieldOutputText;
-
-  private boolean textfieldPlaceholderActive = true;
+  private JLabel labelCopyStateAdd;
+  private JTextField textfieldUserInputAdd;
+  private JTextField textfieldOutputTextAdd;
 
   private final String placeholderText = "Enter Text";
 
@@ -52,20 +54,20 @@ class Replacer extends JFrame implements ActionListener, KeyListener, FocusListe
   @Override
   public void actionPerformed(ActionEvent ae) {
     //<editor-fold defaultstate="collapsed" desc="Copy to Clipboard state">
-    if ("CopyText".equals(ae.getActionCommand())) {
+    if ("CopyTextRemove".equals(ae.getActionCommand())) {
       Timer timer = new Timer(2000, event -> {
-        labelCopyState.setText(null);
+        labelCopyStateRemove.setText(null);
       });
 
-      if ((textfieldOutputText.getText().equals("")) || (textfieldOutputText.getText() == null)) {
-        labelCopyState.setText("Nothing copied");
+      if ((textfieldOutputTextRemove.getText().equals("")) || (textfieldOutputTextRemove.getText() == null)) {
+        labelCopyStateRemove.setText("Nothing copied");
         timer.start();
 
-      } else if ((!textfieldOutputText.getText().equals("Enter Text")) && (textfieldUserInput.getText().length() > 0)) {
-        labelCopyState.setText("Copied to Clipboard");
+      } else if ((!textfieldOutputTextRemove.getText().equals("Enter Text")) && (textfieldUserInputRemove.getText().length() > 0)) {
+        labelCopyStateRemove.setText("Copied to Clipboard");
         timer.start();
 
-        StringSelection stringSelection = new StringSelection(textfieldOutputText.getText());
+        StringSelection stringSelection = new StringSelection(textfieldOutputTextRemove.getText());
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         clipboard.setContents(stringSelection, null);
       }
@@ -74,35 +76,32 @@ class Replacer extends JFrame implements ActionListener, KeyListener, FocusListe
   }
 
   @Override
-  public void keyTyped(KeyEvent e) {
-    System.out.println("keyTyped has not been coded yet.");
-  }
-
-  @Override
-  public void keyPressed(KeyEvent e) {
-    System.out.println("keyPressed has not been coded yet.");
-  }
-
-  @Override
-  public void keyReleased(KeyEvent e) {
-    System.out.println("keyReleased has not been coded yet.");
-  }
-
-  @Override
   public void focusGained(FocusEvent e) {
-    if (textfieldPlaceholderActive) { //If Placeholder ("Enter Text") showing before focus gained
-      textfieldUserInput.setText(null); //Set text to null
-      textfieldUserInput.setForeground(Color.black); //Set text to black
-      textfieldPlaceholderActive = false; //Set to inactive while element is focused
+    if (textfieldPlaceholderActiveRemove) { //If Placeholder ("Enter Text") showing before focus gained
+      textfieldUserInputRemove.setText(null); //Set text to null
+      textfieldUserInputRemove.setForeground(Color.black); //Set text to black
+      textfieldPlaceholderActiveRemove = false; //Set to inactive while element is focused
+    }
+    
+    if (textfieldPlaceholderActiveAdd) { //If Placeholder ("Enter Text") showing before focus gained
+      textfieldUserInputAdd.setText(null); //Set text to null
+      textfieldUserInputAdd.setForeground(Color.black); //Set text to black
+      textfieldPlaceholderActiveAdd = false; //Set to inactive while element is focused
     }
   }
 
   @Override
   public void focusLost(FocusEvent e) {
-    if (textfieldUserInput.getText().isEmpty()) { //If enterText textfield empty
-      textfieldUserInput.setText(placeholderText); //Set text to Placeholder ("Enter Text")
-      textfieldUserInput.setForeground(Color.lightGray); //Set text to light gray
-      textfieldPlaceholderActive = true; //Set to active when element focus is lost
+    if (textfieldUserInputRemove.getText().isEmpty()) { //If enterText textfield empty
+      textfieldUserInputRemove.setText(placeholderText); //Set text to Placeholder ("Enter Text")
+      textfieldUserInputRemove.setForeground(Color.lightGray); //Set text to light gray
+      textfieldPlaceholderActiveRemove = true; //Set to active when element focus is lost
+    }
+    
+    if (textfieldUserInputAdd.getText().isEmpty()) { //If enterText textfield empty
+      textfieldUserInputAdd.setText(placeholderText); //Set text to Placeholder ("Enter Text")
+      textfieldUserInputAdd.setForeground(Color.lightGray); //Set text to light gray
+      textfieldPlaceholderActiveAdd = true; //Set to active when element focus is lost
     }
   }
   //</editor-fold>
@@ -111,72 +110,84 @@ class Replacer extends JFrame implements ActionListener, KeyListener, FocusListe
     GridBagConstraints gbc = new GridBagConstraints();
     gbc.fill = GridBagConstraints.BOTH;
 
-    JPanel mainPanel = new JPanel();
-    mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-    mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.X_AXIS));
+    GridBagConstraints gbd = new GridBagConstraints();
+    gbd.fill = GridBagConstraints.BOTH;
 
-    JPanel centralPanel = new JPanel();
-    centralPanel.setLayout(new BorderLayout());
+    JPanel panelMain = new JPanel();
+    panelMain.setLayout(new BoxLayout(panelMain, BoxLayout.Y_AXIS));
+    panelMain.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-    JPanel panelUserInput = new JPanel(new GridBagLayout());
-    JPanel panelUserOutput = new JPanel(new GridBagLayout());
+    //<editor-fold defaultstate="collapsed" desc="Removing Underscores">
+    JPanel panelUnderscoreRemove = new JPanel();
+    panelUnderscoreRemove.setBorder(BorderFactory.createTitledBorder("Remove Underscores"));
+    panelUnderscoreRemove.setLayout(new BoxLayout(panelUnderscoreRemove, BoxLayout.X_AXIS));
 
-    JPanel labelContainer = new JPanel();
-    labelContainer.setLayout(new GridLayout(1, 3));
+    JPanel panelUnderscoreRemove_Inner = new JPanel();
+    panelUnderscoreRemove_Inner.setBorder(new EmptyBorder(5, 5, 5, 5));
+    panelUnderscoreRemove_Inner.setLayout(new BoxLayout(panelUnderscoreRemove_Inner, BoxLayout.X_AXIS));
 
-    JPanel panelCharacterCount = new JPanel();
-    JPanel panelCopyState = new JPanel();
-    JPanel panelUnderscoreCount = new JPanel();
+    JPanel panelUnderscoreRemove_Inner_Inner = new JPanel();
+    panelUnderscoreRemove_Inner_Inner.setLayout(new BorderLayout());
 
-    JPanel buttonContainer = new JPanel();
-    buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.X_AXIS));
+    JPanel panelUserInputRemove = new JPanel(new GridBagLayout());
+    JPanel panelUserOutputRemove = new JPanel(new GridBagLayout());
 
-    JLabel labelCharacterCount = new JLabel("0");
-    labelCharacterCount.setHorizontalAlignment(JLabel.LEFT);
+    JPanel labelContainerRemove = new JPanel();
+    labelContainerRemove.setLayout(new GridLayout(1, 3));
 
-    JLabel labelCharacters = new JLabel("Characters:");
-    labelCharacters.setHorizontalAlignment(JLabel.RIGHT);
+    JPanel panelCharacterCountRemove = new JPanel();
+    JPanel panelCopyStateRemove = new JPanel();
+    JPanel panelUnderscoreCountRemove = new JPanel();
 
-    JLabel labelUnderscoreCount = new JLabel("0");
-    labelUnderscoreCount.setHorizontalAlignment(JLabel.LEFT);
+    JPanel buttonContainerRemove = new JPanel();
+    buttonContainerRemove.setLayout(new BoxLayout(buttonContainerRemove, BoxLayout.X_AXIS));
 
-    JLabel labelUnderscores = new JLabel("Underscores:");
-    labelUnderscores.setHorizontalAlignment(JLabel.RIGHT);
+    JLabel labelCharacterCountRemove = new JLabel("0");
+    labelCharacterCountRemove.setHorizontalAlignment(JLabel.LEFT);
 
-    labelCopyState = new JLabel();
+    JLabel labelCharactersRemove = new JLabel("Characters:");
+    labelCharactersRemove.setHorizontalAlignment(JLabel.RIGHT);
 
-    labelContainer.add(panelCharacterCount);
-    labelContainer.add(panelCopyState);
-    labelContainer.add(panelUnderscoreCount);
+    JLabel labelUnderscoreCountRemove = new JLabel("0");
+    labelUnderscoreCountRemove.setHorizontalAlignment(JLabel.LEFT);
 
-    panelCharacterCount.add(labelCharacters);
-    panelCharacterCount.add(labelCharacterCount);
-    panelCopyState.add(labelCopyState);
-    panelUnderscoreCount.add(labelUnderscores);
-    panelUnderscoreCount.add(labelUnderscoreCount);
+    JLabel labelUnderscoresRemove = new JLabel("Underscores:");
+    labelUnderscoresRemove.setHorizontalAlignment(JLabel.RIGHT);
+
+    labelCopyStateRemove = new JLabel();
+
+    labelContainerRemove.add(panelCharacterCountRemove);
+    labelContainerRemove.add(panelCopyStateRemove);
+    labelContainerRemove.add(panelUnderscoreCountRemove);
+
+    panelCharacterCountRemove.add(labelCharactersRemove);
+    panelCharacterCountRemove.add(labelCharacterCountRemove);
+    panelCopyStateRemove.add(labelCopyStateRemove);
+    panelUnderscoreCountRemove.add(labelUnderscoresRemove);
+    panelUnderscoreCountRemove.add(labelUnderscoreCountRemove);
 
     //<editor-fold defaultstate="collapsed" desc="Output Textfield">
-    textfieldOutputText = new JTextField();
-    textfieldOutputText.setFont(arial);
-    textfieldOutputText.setEditable(false);
+    textfieldOutputTextRemove = new JTextField();
+    textfieldOutputTextRemove.setFont(arial);
+    textfieldOutputTextRemove.setEditable(false);
     gbc.weightx = 1.0;
     gbc.gridx = 0;
     gbc.gridy = 1;
-    panelUserOutput.add(textfieldOutputText, gbc);
+    panelUserOutputRemove.add(textfieldOutputTextRemove, gbc);
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="User input Textfield">
-    textfieldUserInput = new JTextField();
-    textfieldUserInput.setFont(arial);
-    textfieldUserInput.addFocusListener(this);
-    textfieldUserInput.setBorder(BorderFactory.createCompoundBorder(
-            textfieldUserInput.getBorder(),
+    textfieldUserInputRemove = new JTextField();
+    textfieldUserInputRemove.setFont(arial);
+    textfieldUserInputRemove.addFocusListener(this);
+    textfieldUserInputRemove.setBorder(BorderFactory.createCompoundBorder(
+            textfieldUserInputRemove.getBorder(),
             BorderFactory.createEmptyBorder(3, 0, 3, 0)));
     gbc.weightx = 1.0;
     gbc.gridx = 0;
     gbc.gridy = 0;
-    panelUserInput.add(textfieldUserInput, gbc);
-    textfieldUserInput.getDocument().addDocumentListener(new DocumentListener() { //Set up the text field to check for changes
+    panelUserInputRemove.add(textfieldUserInputRemove, gbc);
+    textfieldUserInputRemove.getDocument().addDocumentListener(new DocumentListener() { //Set up the text field to check for changes
       @Override
       public void changedUpdate(DocumentEvent e) {
         update();
@@ -194,41 +205,167 @@ class Replacer extends JFrame implements ActionListener, KeyListener, FocusListe
 
       //Replace underscores with spaces
       private void update() {
-        long underscoreCount = textfieldUserInput.getText().chars().filter(ch -> ch == '_').count(); //Filter underscores
-        labelUnderscoreCount.setText(String.valueOf(underscoreCount)); //Count total underscores
+        long underscoreCountRemove = textfieldUserInputRemove.getText().chars().filter(ch -> ch == '_').count(); //Filter underscores
+        labelUnderscoreCountRemove.setText(String.valueOf(underscoreCountRemove)); //Count total underscores
 
-        if (!textfieldUserInput.getText().equals("Enter Text")) {
-          labelCharacterCount.setText(textfieldUserInput.getText().length() + "");
+        if (!textfieldUserInputRemove.getText().equals("Enter Text")) {
+          labelCharacterCountRemove.setText(textfieldUserInputRemove.getText().length() + "");
         }
 
-        if ((!(textfieldUserInput.getText().equals(placeholderText)) && (textfieldUserInput.getText().length() > 0))) {
-          textfieldOutputText.setText(textfieldUserInput.getText().replaceAll("_", " "));
-        } else if (((textfieldUserInput.getText().length() < 1))) {
-          textfieldOutputText.setText(null);
+        if ((!(textfieldUserInputRemove.getText().equals(placeholderText)) && (textfieldUserInputRemove.getText().length() > 0))) {
+          textfieldOutputTextRemove.setText(textfieldUserInputRemove.getText().replaceAll("_", " "));
+        } else if (((textfieldUserInputRemove.getText().length() < 1))) {
+          textfieldOutputTextRemove.setText(null);
         }
       }
     });
     //</editor-fold>
 
-    JButton copyText = new JButton("Copy");
+    JButton copyTextRemove = new JButton("Copy");
     gbc.weightx = 0.01;
     gbc.gridx = 1;
     gbc.gridy = 1;
-    copyText.setActionCommand("CopyText");
-    copyText.addActionListener(this);
-    panelUserOutput.add(copyText, gbc);
+    copyTextRemove.setActionCommand("CopyTextRemove");
+    copyTextRemove.addActionListener(this);
+    panelUserOutputRemove.add(copyTextRemove, gbc);
+    //</editor-fold>
 
-    add(mainPanel);
-    mainPanel.add(centralPanel);
+    //<editor-fold defaultstate="collapsed" desc="Adding Underscores">
+    JPanel panelUnderscoreAdd = new JPanel();
+    panelUnderscoreAdd.setBorder(BorderFactory.createTitledBorder("Add Underscores"));
+    panelUnderscoreAdd.setLayout(new BoxLayout(panelUnderscoreAdd, BoxLayout.X_AXIS));
 
-    centralPanel.add(buttonContainer);
-    centralPanel.add(labelContainer, BorderLayout.NORTH);
-    centralPanel.add(panelUserInput, BorderLayout.CENTER);
-    centralPanel.add(panelUserOutput, BorderLayout.SOUTH);
+    JPanel panelUnderscoreAdd_Inner = new JPanel();
+    panelUnderscoreAdd_Inner.setBorder(new EmptyBorder(5, 5, 5, 5));
+    panelUnderscoreAdd_Inner.setLayout(new BoxLayout(panelUnderscoreAdd_Inner, BoxLayout.X_AXIS));
+
+    JPanel panelUnderscoreAdd_Inner_Inner = new JPanel();
+    panelUnderscoreAdd_Inner_Inner.setLayout(new BorderLayout());
+
+    JPanel panelUserInputAdd = new JPanel(new GridBagLayout());
+    JPanel panelUserOutputAdd = new JPanel(new GridBagLayout());
+
+    JPanel labelContainerAdd = new JPanel();
+    labelContainerAdd.setLayout(new GridLayout(1, 3));
+
+    JPanel panelCharacterCountAdd = new JPanel();
+    JPanel panelCopyStateAdd = new JPanel();
+    JPanel panelUnderscoreCountAdd = new JPanel();
+
+    JPanel buttonContainerAdd = new JPanel();
+    buttonContainerAdd.setLayout(new BoxLayout(buttonContainerAdd, BoxLayout.X_AXIS));
+
+    JLabel labelCharacterCountAdd = new JLabel("0");
+    labelCharacterCountAdd.setHorizontalAlignment(JLabel.LEFT);
+
+    JLabel labelCharactersAdd = new JLabel("Characters:");
+    labelCharactersAdd.setHorizontalAlignment(JLabel.RIGHT);
+
+    JLabel labelUnderscoreCountAdd = new JLabel("0");
+    labelUnderscoreCountAdd.setHorizontalAlignment(JLabel.LEFT);
+
+    JLabel labelUnderscoresAdd = new JLabel("Underscores:");
+    labelUnderscoresAdd.setHorizontalAlignment(JLabel.RIGHT);
+
+    labelCopyStateAdd = new JLabel();
+
+    labelContainerAdd.add(panelCharacterCountAdd);
+    labelContainerAdd.add(panelCopyStateAdd);
+    labelContainerAdd.add(panelUnderscoreCountAdd);
+
+    panelCharacterCountAdd.add(labelCharactersAdd);
+    panelCharacterCountAdd.add(labelCharacterCountAdd);
+    panelCopyStateAdd.add(labelCopyStateAdd);
+    panelUnderscoreCountAdd.add(labelUnderscoresAdd);
+    panelUnderscoreCountAdd.add(labelUnderscoreCountAdd);
+
+    //<editor-fold defaultstate="collapsed" desc="Output Textfield">
+    textfieldOutputTextAdd = new JTextField();
+    textfieldOutputTextAdd.setFont(arial);
+    textfieldOutputTextAdd.setEditable(false);
+    gbd.weightx = 1.0;
+    gbd.gridx = 0;
+    gbd.gridy = 1;
+    panelUserOutputAdd.add(textfieldOutputTextAdd, gbd);
+    //</editor-fold>
+
+    //<editor-fold defaultstate="collapsed" desc="User input Textfield">
+    textfieldUserInputAdd = new JTextField();
+    textfieldUserInputAdd.setFont(arial);
+    textfieldUserInputAdd.addFocusListener(this);
+    textfieldUserInputAdd.setBorder(BorderFactory.createCompoundBorder(
+            textfieldUserInputAdd.getBorder(),
+            BorderFactory.createEmptyBorder(3, 0, 3, 0)));
+    gbd.weightx = 1.0;
+    gbd.gridx = 0;
+    gbd.gridy = 0;
+    panelUserInputAdd.add(textfieldUserInputAdd, gbd);
+    textfieldUserInputAdd.getDocument().addDocumentListener(new DocumentListener() { //Set up the text field to check for changes
+      @Override
+      public void changedUpdate(DocumentEvent e) {
+        update();
+      }
+
+      @Override
+      public void removeUpdate(DocumentEvent e) {
+        update(); //Deletion
+      }
+
+      @Override
+      public void insertUpdate(DocumentEvent e) {
+        update(); //Addition
+      }
+
+      //Replace underscores with spaces
+      private void update() {
+        long underscoreCount = textfieldUserInputAdd.getText().chars().filter(ch -> ch == '_').count(); //Filter underscores
+        labelUnderscoreCountRemove.setText(String.valueOf(underscoreCount)); //Count total underscores
+
+        if (!textfieldUserInputAdd.getText().equals("Enter Text")) {
+          labelCharacterCountRemove.setText(textfieldUserInputAdd.getText().length() + "");
+        }
+
+        if ((!(textfieldUserInputAdd.getText().equals(placeholderText)) && (textfieldUserInputRemove.getText().length() > 0))) {
+          textfieldOutputTextAdd.setText(textfieldUserInputAdd.getText().replaceAll("_", " "));
+        } else if (((textfieldUserInputAdd.getText().length() < 1))) {
+          textfieldOutputTextAdd.setText(null);
+        }
+      }
+    });
+    //</editor-fold>
+
+    JButton copyTextAdd = new JButton("Copy");
+    gbd.weightx = 0.01;
+    gbd.gridx = 1;
+    gbd.gridy = 1;
+    copyTextAdd.setActionCommand("CopyTextAdd");
+    copyTextAdd.addActionListener(this);
+    panelUserOutputAdd.add(copyTextAdd, gbd);
+    //</editor-fold>
+
+    add(panelMain);
+    panelMain.add(panelUnderscoreRemove, BorderLayout.NORTH);
+    panelMain.add(panelUnderscoreAdd, BorderLayout.SOUTH);
+
+    panelUnderscoreRemove.add(panelUnderscoreRemove_Inner);
+    panelUnderscoreRemove_Inner.add(panelUnderscoreRemove_Inner_Inner);
+
+    panelUnderscoreAdd.add(panelUnderscoreAdd_Inner);
+    panelUnderscoreAdd_Inner.add(panelUnderscoreAdd_Inner_Inner);
+
+    panelUnderscoreRemove_Inner_Inner.add(buttonContainerRemove);
+    panelUnderscoreRemove_Inner_Inner.add(labelContainerRemove, BorderLayout.NORTH);
+    panelUnderscoreRemove_Inner_Inner.add(panelUserInputRemove, BorderLayout.CENTER);
+    panelUnderscoreRemove_Inner_Inner.add(panelUserOutputRemove, BorderLayout.SOUTH);
+
+    panelUnderscoreAdd_Inner_Inner.add(buttonContainerAdd);
+    panelUnderscoreAdd_Inner_Inner.add(labelContainerAdd, BorderLayout.NORTH);
+    panelUnderscoreAdd_Inner_Inner.add(panelUserInputAdd, BorderLayout.CENTER);
+    panelUnderscoreAdd_Inner_Inner.add(panelUserOutputAdd, BorderLayout.SOUTH);
 
     //<editor-fold defaultstate="collapsed" desc="Default Settings">
     setTitle("Underscore Replacer");
-    setSize(650, 165);
+    setSize(650, 300);
     setResizable(false);
     setLocationRelativeTo(null);
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
