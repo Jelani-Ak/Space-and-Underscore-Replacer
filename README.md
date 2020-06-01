@@ -1,4 +1,4 @@
-# Space and Underscore Replacer
+# Underscore and Space Replacer
 
 <p align="center">
   <img src="images/Example.png" >
